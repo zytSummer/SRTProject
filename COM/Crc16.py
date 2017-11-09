@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
+import binascii
 
-class crc16:  
+class crc16:
     auchCRCHi = [ 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, \
             0x80, 0x41, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, \
             0x00, 0xC1, 0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, \
@@ -27,7 +28,7 @@ class crc16:
             0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, 0x80, 0x41, 0x00, 0xC1, \
             0x81, 0x40, 0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, \
             0x00, 0xC1, 0x81, 0x40, 0x01, 0xC0, 0x80, 0x41, 0x01, 0xC0, \
-            0x80, 0x41, 0x00, 0xC1, 0x81, 0x40]  
+            0x80, 0x41, 0x00, 0xC1, 0x81, 0x40]
 
     auchCRCLo = [ 0x00, 0xC0, 0xC1, 0x01, 0xC3, 0x03, 0x02, 0xC2, 0xC6, 0x06, \
             0x07, 0xC7, 0x05, 0xC5, 0xC4, 0x04, 0xCC, 0x0C, 0x0D, 0xCD, \
@@ -55,63 +56,88 @@ class crc16:
             0x8A, 0x4A, 0x4E, 0x8E, 0x8F, 0x4F, 0x8D, 0x4D, 0x4C, 0x8C, \
             0x44, 0x84, 0x85, 0x45, 0x87, 0x47, 0x46, 0x86, 0x82, 0x42, \
             0x43, 0x83, 0x41, 0x81, 0x80, 0x40]
-    def __init__(self):  
-        pass  
-    def createcrc(self,array):  
-        crchi = 0xff  
-        crclo = 0xff  
-        for i in range(0,len(array)):  
-            crcIndex = crchi ^ array[i]  
-            crchi = crclo ^ self.auchCRCHi[crcIndex]  
-            crclo = self.auchCRCLo[crcIndex]  
-        return (crchi<<8 | crclo)  
+    def __init__(self):
+        pass
+    def createcrc(self,array):
+        crchi = 0xff
+        crclo = 0xff
+        for i in range(0,len(array)):
+            crcIndex = crchi ^ array[i]
+            crchi = crclo ^ self.auchCRCHi[crcIndex]
+            crclo = self.auchCRCLo[crcIndex]
+        return (crchi<<8 | crclo)
+    def createarray_string2hex(self,array_str):
+        temp_array = []
+        dest_string = ""
+        lenarray = len(array_str)
+        for item in range(0,lenarray, 2):
+            temp_array.append(int(array_str[item:item + 2],16))
+            dest_string += array_str[item:item + 2]
+        crcvalue = self.createcrc(temp_array)
+        crchigh = crcvalue >> 8
+        crchigh_hex = hex(crchigh)
+        if crchigh_hex < 0xF:
+            dest_string += str(crchigh_hex).replace("x", "")
+        else:
+            dest_string += str(crchigh_hex).replace("0x", "")
+        crclow = crcvalue & 0xff
+        crclow_hex = hex(crclow)
+        if crclow_hex < 0xF:
+            dest_string += str(crclow_hex).replace("x", "")
+        else:
+            dest_string += str(crclow_hex).replace("0x", "")
+        #print "dest_array = ", dest_array
+        return dest_string
     def createarray_hex(self,array):
         temp_array = []
         for item in array:
             temp_array.append(int(item,16))
-        array_temp = self.createarray_dec(temp_array)
+        temp_array = self.createarray_dec(temp_array)
         dest_array = []
         for item_temp in temp_array:
             dest_array.append(hex(item_temp))
-        print "dest_array = ", dest_array
+        #print "dest_array = ", dest_array
         return dest_array
     def createarray_dec(self,array):
         crcvalue = self.createcrc(array)
-        array.append(crcvalue&0xff)  
+        array.append(crcvalue&0xff)
         array.append(crcvalue>>8)
         return array
-    def calcrc_hex(self,array):  
+    def calcrc_hex(self,array):
         crchi = 0xff
         crclo = 0xff
-        lenarray = len(array)  
-        for i in range(0,lenarray-2):  
-            crcIndex = crchi ^ array[i]  
-            crchi = crclo ^ self.auchCRCHi[crcIndex]  
-            crclo = self.auchCRCLo[crcIndex]  
-        if crchi == array[lenarray-2] and crclo== array[lenarray-1] :  
-            return 0  
-        else:  
-            return 1  
-    def calcrc_dec(self,array):  
-        crchi = 0xff  
-        crclo = 0xff  
-        lenarray = len(array)  
-        for i in range(0,lenarray-2):  
-            crcIndex = crchi ^ array[i]  
+        lenarray = len(array)
+        for i in range(0,lenarray-2):
+            crcIndex = crchi ^ array[i]
             crchi = crclo ^ self.auchCRCHi[crcIndex]
             crclo = self.auchCRCLo[crcIndex]
         if crchi == array[lenarray-2] and crclo== array[lenarray-1] :
             return 0
-        else:  
+        else:
+            return 1
+    def calcrc_dec(self,array):
+        crchi = 0xff
+        crclo = 0xff
+        lenarray = len(array)
+        for i in range(0,lenarray-2):
+            crcIndex = crchi ^ array[i]
+            crchi = crclo ^ self.auchCRCHi[crcIndex]
+            crclo = self.auchCRCLo[crcIndex]
+        if crchi == array[lenarray-2] and crclo== array[lenarray-1] :
+            return 0
+        else:
             return 1
 
 if __name__ == '__main__':
-    test = crc16()  
+    test = crc16()
     array1 = []
+    array_s = "010203"
     array = [1,2,3]
+    send_data = [01,02,03]
     array_tmp = list(array)
-    print test.createcrc(array),"\n"  
-    array1 = test.createarray_hex(array)
+    print "string :",test.createarray_string2hex(array_s)
+    print test.createcrc(array),"\n"
+    array1 = test.createarray_hex(send_data)
     print "after calculate Hex: ", array1
     array2 = test.createarray_dec(array_tmp)
     print "after calculate Dec: ", array2

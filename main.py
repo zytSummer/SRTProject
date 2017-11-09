@@ -224,6 +224,7 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
                                     else:
                                         hexTotle = hex(self.counter.totleNum)
                                         self.send_data += str(hexTotle).replace("x", "")
+                                    self.send_data += "00000000000000000000000000"
                                     print "Origin send_data = ", self.send_data
                                     #self.send_data = binascii.hexlify(self.send_data)
                                 else:

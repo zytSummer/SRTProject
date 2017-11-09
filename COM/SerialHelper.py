@@ -82,11 +82,11 @@ class SerialHelper(object):
             if self.l_serial.isOpen():
                 if isHex:
                     data = data.replace(" ", "").replace("\n", "")
-                    print "enter write data = ", data
-                    data = binascii.unhexlify(data)
+                    data_temp = self.crc.createarray_string2hex(data)
+                    data_temp = binascii.unhexlify(data_temp)
                     print "Helper data ", data
-                    #data_temp = self.crc.createarray_hex(data)
-                self.l_serial.write(data)
+                    print data_temp
+                self.l_serial.write(data_temp)
 
                 
 if __name__ == '__main__':
