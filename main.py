@@ -188,6 +188,7 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
         '''
         while self.ser.alive:
             try:
+                time.sleep(0.01)
                 n = self.ser.l_serial.inWaiting()
                 if n:
                     self.receive_data += self.ser.l_serial.read(n)#.replace(binascii.unhexlify("00"), "")
