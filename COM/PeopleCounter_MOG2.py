@@ -27,12 +27,18 @@ class PeopleCounter(object):
         fgbg = cv2.createBackgroundSubtractorMOG2()
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         frame1 = np.zeros((640,480))
-        self.out = cv2.VideoWriter(datetime.datetime.now().strftime("%A_%d_%B_%Y_%I_%M_%S%p")+'.avi',fourcc, 5.0, np.shape(frame1))
-
+        #self.out = cv2.VideoWriter(datetime.datetime.now().strftime("%A_%d_%B_%Y_%I_%M_%S%p")+'.avi',fourcc, 5.0, np.shape(frame1))
+        Area = 0
         while(self.alive):
             ret, frame = self.cap.read()
             frame = imutils.resize(frame, width=width)
-            fgmask = fgbg.apply(frame)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (21, 21), 0)
+            cv2.imshow("gray", gray)
+            thresh = fgbg.apply(gray)
+            thresh = cv2.threshold(thresh, 170, 255, cv2.THRESH_BINARY)[1]
+            fgmask = cv2.dilate(thresh, None, iterations=2)
+            cv2.imshow("fgmask window", fgmask)
             (_,cnts, _) = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             maxArea = 0
             for c in cnts:
@@ -42,7 +48,7 @@ class PeopleCounter(object):
                     (x, y, w, h) = (0,0,0,0)
                     continue
                 else:
-                    if Area < 5000:
+                    if Area < 12000:
                         (x, y, w, h) = (0,0,0,0)
                         continue
                     else:
@@ -51,8 +57,8 @@ class PeopleCounter(object):
                         (x, y, w, h) = cv2.boundingRect(m)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-                cv2.line(frame, (width / 2, 0), (width, 450), (250, 0, 1), 2) #blue line
-                cv2.line(frame, (width / 2 - 50, 0), (width - 50, 450), (0, 0, 255), 2)#red line
+                cv2.line(frame, (0, 300), (width, 300), (250, 0, 1), 2) #blue line
+                cv2.line(frame, (0, 250), (width, 250), (0, 0, 255), 2) #red line
 
                 rectagleCenterPont = ((x + x + w) /2, (y + y + h) /2)
                 cv2.circle(frame, rectagleCenterPont, 1, (0, 0, 255), 5)
@@ -67,6 +73,7 @@ class PeopleCounter(object):
 	
             cv2.putText(frame, "In: {}".format(str(self.inNum)), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             cv2.putText(frame, "Out: {}".format(str(self.outNum)), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            cv2.putText(frame, "area: {}".format(str(Area)), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
             cv2.putText(frame, datetime.datetime.now().strftime("%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
             cv2.imshow("SRT Window", frame)
 
@@ -79,26 +86,31 @@ class PeopleCounter(object):
         self.out.release()
         self.cap.release()
         cv2.destroyAllWindows()
+
     def testIntersectionIn(self, x, y):
-        res = -450 * x + 400 * y + 157500
-        if((res >= -550) and  (res < 550)):
-            print (str(res))
+        res = y - 250
+        if((res >= -2) and (res < 2)):
+            print "In:",(str(res))
             return True
         return False
 
     def testIntersectionOut(self, x, y):
-        res = -450 * x + 400 * y + 180000
-        if ((res >= -550) and (res <= 550)):
-            print (str(res))
+        res = y - 300
+        if ((res >= -2) and (res <= 2)):
+            print "out:",(str(res))
             return True
         return False
 
 if __name__ == '__main__':
-    counter = PeopleCounter(0)
+    counter = PeopleCounter(1)
     counter.CvOpen()
+    print "Open OK"
     thread_peopleCounter = threading.Thread(target = counter.PeopleCounterProc)
     thread_peopleCounter.setDaemon(True)
     thread_peopleCounter.start()
     for i in range(0,10000):
         time.sleep(5)
-        print "input num: ", counter.inNum, "output num: ", counter.outNum
+        k = input()&0xff
+        if k==27:
+            break
+        #print "input num: ", counter.inNum, "output num: ", counter.outNum
