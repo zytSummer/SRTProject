@@ -17,6 +17,8 @@ class PeopleCounter(object):
         self.outNum = 0
         self.totleNum = 0
         self.alive = True
+        self.InDelayTime = 0
+        self.OutDelayTime = 0
         #self.CvOpen()
         #self.PeopleCounterProc()
     def CvOpen(self):
@@ -27,12 +29,14 @@ class PeopleCounter(object):
         fgbg = cv2.createBackgroundSubtractorMOG2()
         fourcc = cv2.VideoWriter_fourcc(*'XVID')
         frame1 = np.zeros((640,480))
-        #self.out = cv2.VideoWriter(datetime.datetime.now().strftime("%A_%d_%B_%Y_%I_%M_%S%p")+'.avi',fourcc, 5.0, np.shape(frame1))
+        self.out = cv2.VideoWriter(datetime.datetime.now().strftime("%A_%d_%B_%Y_%I_%M_%S%p")+'.avi',fourcc, 5.0, np.shape(frame1))
         Area = 0
         while(self.alive):
             ret, frame = self.cap.read()
+            #self.out.write(frame)
             frame = imutils.resize(frame, width=width)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            gray = cv2.GaussianBlur(gray, (21, 21), 0)
             gray = cv2.GaussianBlur(gray, (21, 21), 0)
             cv2.imshow("gray", gray)
             thresh = fgbg.apply(gray)
@@ -48,13 +52,14 @@ class PeopleCounter(object):
                     (x, y, w, h) = (0,0,0,0)
                     continue
                 else:
-                    if Area < 12000:
+                    if Area < 7000:
                         (x, y, w, h) = (0,0,0,0)
                         continue
                     else:
                         maxArea = Area
                         m=c
                         (x, y, w, h) = cv2.boundingRect(m)
+                        
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
                 cv2.line(frame, (0, 300), (width, 300), (250, 0, 1), 2) #blue line
@@ -62,12 +67,17 @@ class PeopleCounter(object):
 
                 rectagleCenterPont = ((x + x + w) /2, (y + y + h) /2)
                 cv2.circle(frame, rectagleCenterPont, 1, (0, 0, 255), 5)
+                if (self.InDelayTime > 0) or (self.OutDelayTime > 0):
+                    self.InDelayTime -= 1
+                else:
+                    if(self.testIntersectionIn((x + x + w) / 2, (y + y + h) / 2)):
+                        self.inNum += 1
 
-                if(self.testIntersectionIn((x + x + w) / 2, (y + y + h) / 2)):
-                    self.inNum += 1
-
-                if(self.testIntersectionOut((x + x + w) / 2, (y + y + h) / 2)):
-                    self.outNum += 1
+                if (self.OutDelayTime > 0) or (self.InDelayTime > 0):
+                    self.OutDelayTime -= 1
+                else:
+                    if(self.testIntersectionOut((x + x + w) / 2, (y + y + h) / 2)):
+                        self.outNum += 1
                 self.totleNum = self.originNum + self.inNum - self.outNum
                 #self.out.write(frame)
 	
@@ -88,21 +98,23 @@ class PeopleCounter(object):
         cv2.destroyAllWindows()
 
     def testIntersectionIn(self, x, y):
-        res = y - 250
-        if((res >= -2) and (res < 2)):
+        res = y - 300
+        if((res >= -5) and (res < 5)):
+            self.InDelayTime = 40
             print "In:",(str(res))
             return True
         return False
 
     def testIntersectionOut(self, x, y):
-        res = y - 300
-        if ((res >= -2) and (res <= 2)):
+        res = y - 250
+        if ((res >= -5) and (res <= 5)):
+            self.OutDelayTime = 40
             print "out:",(str(res))
             return True
         return False
 
 if __name__ == '__main__':
-    counter = PeopleCounter(1)
+    counter = PeopleCounter("test.avi")
     counter.CvOpen()
     print "Open OK"
     thread_peopleCounter = threading.Thread(target = counter.PeopleCounterProc)
