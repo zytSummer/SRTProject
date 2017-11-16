@@ -40,7 +40,7 @@ class PeopleCounter(object):
             gray = cv2.GaussianBlur(gray, (21, 21), 0)
             cv2.imshow("gray", gray)
             thresh = fgbg.apply(gray)
-            thresh = cv2.threshold(thresh, 170, 255, cv2.THRESH_BINARY)[1]
+            thresh = cv2.threshold(thresh, 200, 255, cv2.THRESH_BINARY)[1]
             fgmask = cv2.dilate(thresh, None, iterations=2)
             cv2.imshow("fgmask window", fgmask)
             (_,cnts, _) = cv2.findContours(fgmask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -99,22 +99,22 @@ class PeopleCounter(object):
 
     def testIntersectionIn(self, x, y):
         res = y - 300
-        if((res >= -5) and (res < 5)):
-            self.InDelayTime = 40
+        if((res >= -10) and (res < 10)):
+            self.InDelayTime = 10
             print "In:",(str(res))
             return True
         return False
 
     def testIntersectionOut(self, x, y):
         res = y - 250
-        if ((res >= -5) and (res <= 5)):
-            self.OutDelayTime = 40
+        if ((res >= -10) and (res <= 10)):
+            self.OutDelayTime = 10
             print "out:",(str(res))
             return True
         return False
 
 if __name__ == '__main__':
-    counter = PeopleCounter("test.avi")
+    counter = PeopleCounter(0)
     counter.CvOpen()
     print "Open OK"
     thread_peopleCounter = threading.Thread(target = counter.PeopleCounterProc)
