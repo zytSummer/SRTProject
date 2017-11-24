@@ -77,13 +77,14 @@ class SerialHelper(object):
         '''
         发送数据给串口设备
         '''
-        self.crc = Crc16.crc16()
+        #self.crc = Crc16.crc16()
         if self.alive:
             if self.l_serial.isOpen():
                 if isHex:
                     data = data.replace(" ", "").replace("\n", "")
-                    data_temp = self.crc.createarray_string2hex(data)
-                    data_temp = binascii.unhexlify(data_temp)
+                    #data_temp = self.crc.createarray_string2hex(data)
+                    print "data_crc", data
+                    data_temp = binascii.unhexlify(data)
                     print "Helper data ", data
                     print data_temp
                 self.l_serial.write(data_temp)

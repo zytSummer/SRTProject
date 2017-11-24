@@ -66,6 +66,7 @@ class crc16:
             crchi = crclo ^ self.auchCRCHi[crcIndex]
             crclo = self.auchCRCLo[crcIndex]
         return (crchi<<8 | crclo)
+
     def createarray_string2hex(self,array_str):
         temp_array = []
         dest_string = ""
@@ -76,18 +77,28 @@ class crc16:
         crcvalue = self.createcrc(temp_array)
         crchigh = crcvalue >> 8
         crchigh_hex = hex(crchigh)
-        if crchigh_hex < 0xF:
+        if int(crchigh_hex,16) < 16:
             dest_string += str(crchigh_hex).replace("x", "")
+            crchigh_str = str(crchigh_hex).replace("x", "")
         else:
             dest_string += str(crchigh_hex).replace("0x", "")
+            crchigh_str = str(crchigh_hex).replace("0x", "")
+        print "crcHigh_hex", crchigh_hex
         crclow = crcvalue & 0xff
         crclow_hex = hex(crclow)
-        if crclow_hex < 0xF:
+        if int(crclow_hex,16) < 16:
             dest_string += str(crclow_hex).replace("x", "")
+            crclow_str = str(crclow_hex).replace("x", "")
+            #dest_string += "00"
         else:
             dest_string += str(crclow_hex).replace("0x", "")
+            crclow_str = str(crclow_hex).replace("0x", "")
+            #dest_string += "00"
+        print "crcLow_hex", crclow_hex
         #print "dest_array = ", dest_array
-        return dest_string
+        #return dest_string
+        return (crchigh_str, crclow_str)
+
     def createarray_hex(self,array):
         temp_array = []
         for item in array:

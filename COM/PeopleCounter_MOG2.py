@@ -33,7 +33,7 @@ class PeopleCounter(object):
         Area = 0
         while(self.alive):
             ret, frame = self.cap.read()
-            #self.out.write(frame)
+            self.out.write(frame)
             frame = imutils.resize(frame, width=width)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             gray = cv2.GaussianBlur(gray, (21, 21), 0)
@@ -67,17 +67,17 @@ class PeopleCounter(object):
 
                 rectagleCenterPont = ((x + x + w) /2, (y + y + h) /2)
                 cv2.circle(frame, rectagleCenterPont, 1, (0, 0, 255), 5)
-                if (self.InDelayTime > 0) or (self.OutDelayTime > 0):
-                    self.InDelayTime -= 1
-                else:
-                    if(self.testIntersectionIn((x + x + w) / 2, (y + y + h) / 2)):
-                        self.inNum += 1
+#                if (self.InDelayTime > 0) or (self.OutDelayTime > 0):
+#                    self.InDelayTime -= 1
+#                else:
+                if(self.testIntersectionIn((x + x + w) / 2, (y + y + h) / 2)):
+                    self.inNum += 1
 
-                if (self.OutDelayTime > 0) or (self.InDelayTime > 0):
-                    self.OutDelayTime -= 1
-                else:
-                    if(self.testIntersectionOut((x + x + w) / 2, (y + y + h) / 2)):
-                        self.outNum += 1
+#                if (self.OutDelayTime > 0) or (self.InDelayTime > 0):
+#                    self.OutDelayTime -= 1
+#                else:
+                if(self.testIntersectionOut((x + x + w) / 2, (y + y + h) / 2)):
+                    self.outNum += 1
                 self.totleNum = self.originNum + self.inNum - self.outNum
                 #self.out.write(frame)
 	
@@ -100,7 +100,7 @@ class PeopleCounter(object):
     def testIntersectionIn(self, x, y):
         res = y - 300
         if((res >= -10) and (res < 10)):
-            self.InDelayTime = 10
+#            self.InDelayTime = 10
             print "In:",(str(res))
             return True
         return False
@@ -108,7 +108,7 @@ class PeopleCounter(object):
     def testIntersectionOut(self, x, y):
         res = y - 250
         if ((res >= -10) and (res <= 10)):
-            self.OutDelayTime = 10
+#            self.OutDelayTime = 10
             print "out:",(str(res))
             return True
         return False
