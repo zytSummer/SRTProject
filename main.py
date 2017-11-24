@@ -11,6 +11,7 @@ import logging
 from UI import SerialTool
 from COM import SerialHelper
 from COM import PeopleCounter_MOG2
+from COM import Crc16
 
 if platform.system() == "Windows":
     from  serial.tools import list_ports
@@ -31,6 +32,7 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
         self.receive_count = 0
         self.receive_data = ""
         self.send_data = ""
+        self.send_data_crc = ""
         self.list_box_serial = list()
         self.find_all_serial()
 
@@ -188,7 +190,7 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
         '''
         while self.ser.alive:
             try:
-                time.sleep(0.01)
+                time.sleep(0.1)
                 n = self.ser.l_serial.inWaiting()
                 if n:
                     self.receive_data += self.ser.l_serial.read(n)#.replace(binascii.unhexlify("00"), "")
@@ -208,34 +210,87 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
                                 if self.receive_data[3:5] == "03":
                                     #print "receive data[3:5] :",self.receive_data[3:5], "\n"
                                     self.send_data += "07"
+                                    self.send_data_crc += "07"
                                     self.send_data += "03"
-                                    self.send_data += "10"
+                                    self.send_data_crc += "03"
+                                    #判断当前接收到的字节数
+                                    byte_num = self.receive_data[15:17]
+                                    print "byte_num = ",byte_num
+                                    hex_byte_num = int(byte_num, 16)
+                                    hex_response_byte_num = hex_byte_num * 2
+                                    if hex_byte_num < 7:
+                                        self.send_data += "0"
+                                        self.send_data_crc += "0"
+                                    str_response_byte_num = str(hex(hex_response_byte_num)).replace("0x", "")
+                                    print "str_response_byte_num = ",str_response_byte_num
+                                    self.send_data += str_response_byte_num
+                                    self.send_data_crc += str_response_byte_num
                                     
                                     #对inNum进行处理
+                                    #这个地方存在问题，当进出的人数大于255后会发生溢出，后续需要优化
                                     hexIn = hex(self.counter.inNum)
-                                    self.send_data += str(hexIn).replace("x", "")
+                                    if int(hexIn,16) < 16:
+                                        self.send_data += str(hexIn).replace("x", "")
+                                        self.send_data_crc += "00"
+                                        self.send_data_crc += str(hexIn).replace("x", "")
+                                    else:
+                                        self.send_data += str(hexIn).replace("0x", "")
+                                        self.send_data_crc += "00"
+                                        self.send_data_crc += str(hexIn).replace("0x", "")
 
                                     #对outNum进行处理，方法与inNum一致
                                     hexOut = hex(self.counter.outNum)
-                                    self.send_data += str(hexOut).replace("x", "")
-
-                                    #对outNum进行处理，方法与inNum一致
+                                    if int(hexOut,16) < 16:
+                                        self.send_data += str(hexOut).replace("x", "")
+                                        self.send_data_crc += "00"
+                                        self.send_data_crc += str(hexOut).replace("x", "")
+                                    else:
+                                        self.send_data += str(hexOut).replace("0x", "")
+                                        self.send_data_crc += "00"
+                                        self.send_data_crc += str(hexOut).replace("0x", "")
+                                    #对totleNum进行处理，方法与inNum一致
                                     if self.counter.totleNum < 0:
                                         self.send_data += "00"
+                                        self.send_data_crc += "0000"
                                     else:
                                         hexTotle = hex(self.counter.totleNum)
-                                        self.send_data += str(hexTotle).replace("x", "")
-                                    self.send_data += "00000000000000000000000000"
+                                        if int(hexTotle,16) < 16:
+                                            self.send_data += str(hexTotle).replace("x", "")
+                                            self.send_data_crc += "00"
+                                            self.send_data_crc += str(hexTotle).replace("x", "")
+                                        else:
+                                            self.send_data += str(hexTotle).replace("0x", "")
+                                            self.send_data_crc += "00"
+                                            self.send_data_crc += str(hexTotle).replace("0x", "")
+                                    
+                                    loop = 0
+
+                                    for loop0 in range(0,hex_byte_num - 3):
+                                        self.send_data += "00"
+                                    for loop1 in range(0, hex_response_byte_num - 6):
+                                        self.send_data_crc += "00"
+
                                     print "Origin send_data = ", self.send_data
+                                    print "Origin send_data_crc = ", self.send_data_crc
+                                    
                                     #self.send_data = binascii.hexlify(self.send_data)
                                 else:
                                     #print "receive data[3:5] error:",self.receive_data[3:5], "\n"
                                     self.send_data += "07"
                                     self.send_data += "83"
+                                    self.send_data_crc += "07"
+                                    self.send_data_crc += "83"
                             else:
                                 print "receive data[0:2] error:",self.receive_data[1], "\n"
                                 self.send_data += "07"
                                 self.send_data += "83"
+                                self.send_data_crc += "07"
+                                self.send_data_crc += "83"
+                            
+                            self.crc = Crc16.crc16()
+                            crc_high, crc_low = self.crc.createarray_string2hex(self.send_data_crc)
+                            self.send_data_crc += crc_high
+                            self.send_data_crc += crc_low
                         else:
                             print "Enter dec recv\n"
                             if self.receive_data.endswith("\n"):
@@ -247,15 +302,16 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
                         self.frm_right_receive.insert("end", self.receive_data + "\n")
                         self.frm_right_receive.see("end")
                         self.receive_data = ""
-                        
+                        time.sleep(0.01)
                         # 是否十六进制发送
                         if self.send_hex_cbtn_var.get() == 1:
                             #print "Enter hex send"
                             #self.send_data = self.space_b2a_hex(self.send_data)
-                            self.ser.write(self.send_data, isHex=True)
+                            self.ser.write(self.send_data_crc, isHex=True)
                         else:
-                            self.ser.write(self.send_data)
+                            self.ser.write(self.send_data_crc)
                         self.send_data = ""
+                        self.send_data_crc = ""
 
             except Exception as e:
                 logging.error(e)
