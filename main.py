@@ -10,7 +10,7 @@ import logging
 
 from UI import SerialTool
 from COM import SerialHelper
-from COM import PeopleCounter_MOG2
+from PPC import PeopleCounter
 from COM import Crc16
 
 if platform.system() == "Windows":
@@ -118,7 +118,7 @@ class MainSerialToolUI(SerialTool.SerialToolUI):
                     self.thread_read = threading.Thread(target=self.SerialRead)
                     self.thread_read.setDaemon(True)
                     self.thread_read.start()
-                self.counter = PeopleCounter_MOG2.PeopleCounter(int(self.cameraId))
+                self.counter = PeopleCounter.PeopleCounter(int(self.cameraId))
                 self.counter.CvOpen()
                 self.thread_peopleCounter = threading.Thread(target=self.counter.PeopleCounterProc)
                 self.thread_peopleCounter.setDaemon(True)
